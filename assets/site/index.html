@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f4f7f3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title><!-- REPLACE: 行程标题 --></title>
+<meta name="description" content="<!-- REPLACE: 行程描述 -->">
+<script>
+window._AMapSecurityConfig = { serviceHost: `${location.origin}/_AMapService` };
+</script>
+<script src="https://webapi.amap.com/maps?v=2.0&key=__AMAP_JS_KEY__&plugin=AMap.ToolBar,AMap.Scale,AMap.Geolocation"></script>
+<style>
+:root {
+  --bg:#f4f7f3; --card:#fff; --ink:#17201b; --muted:#6c756f; --line:#dfe6e0;
+  --brand:#16794b; --brand-soft:#e2f2e9; --warn:#a54d13; --warn-soft:#fff0df;
+  --spot:#1976d2; --food:#d84a3a; --drink:#7b4bb7; --hotel:#dd8a18; --transport:#59636e;
+  --safe-top:env(safe-area-inset-top,0px); --safe-bottom:env(safe-area-inset-bottom,0px);
+  --shadow:0 6px 22px rgba(25,47,34,.09); --radius:18px;
+}
+*{box-sizing:border-box} html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink)}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}
+button,a{font:inherit} a{text-decoration:none}
+.map-shell{position:sticky;top:0;z-index:10;width:100%;height:42svh;min-height:280px;background:#e8eee9}
+#map{position:absolute;inset:0}
+#map-status{position:absolute;z-index:15;left:12px;right:12px;top:calc(12px + var(--safe-top));padding:11px 13px;border-radius:12px;background:rgba(255,255,255,.94);box-shadow:var(--shadow);font-size:13px;color:var(--warn);display:none}
+.tabs{position:sticky;top:42svh;z-index:9;display:flex;gap:8px;overflow-x:auto;padding:10px 14px;background:rgba(244,247,243,.94);backdrop-filter:blur(18px);border-bottom:1px solid var(--line);scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}.tab{min-height:44px;padding:0 16px;border:0;border-radius:999px;background:#e7ece8;color:var(--muted);font-weight:650;white-space:nowrap}.tab.active{background:var(--brand);color:#fff}
+.content{max-width:680px;margin:auto;padding:14px 14px calc(28px + var(--safe-bottom))}
+.hero{padding:18px 4px 14px}.hero h1{font-size:28px;line-height:1.15;margin:0}.hero p{margin:7px 0 0;color:var(--muted);line-height:1.55}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.info,.card,.route,.warning{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow)}
+.info{padding:14px}.eyebrow,.section{font-size:12px;font-weight:750;letter-spacing:.04em;color:var(--muted)}.info strong{display:block;margin-top:5px;font-size:15px;line-height:1.4}
+.section{padding:22px 3px 9px;text-transform:uppercase}.day-head{padding:12px 3px}.day-head h2{margin:0;font-size:24px}.day-head p{margin:5px 0 0;color:var(--muted)}
+.route{padding:13px 15px;margin-bottom:12px;font-size:13px;line-height:1.65;color:var(--muted)}.route strong{color:var(--ink)}
+.warning{padding:13px 15px;margin:8px 0;background:var(--warn-soft);color:var(--warn);font-size:13px;line-height:1.55}
+.timeline{position:relative;padding-left:22px}.timeline:before{content:"";position:absolute;left:7px;top:20px;bottom:18px;width:2px;background:var(--line)}
+.item{position:relative;margin-bottom:11px}.dot{position:absolute;left:-20px;top:22px;width:11px;height:11px;border:3px solid var(--bg);border-radius:50%;z-index:1}.dot.spot{background:var(--spot)}.dot.food{background:var(--food)}.dot.drink{background:var(--drink)}.dot.hotel{background:var(--hotel)}.dot.transport{background:var(--transport)}
+.card{padding:15px;cursor:pointer}.card:active{transform:scale(.995)}.time{font-size:12px;font-weight:700;color:var(--muted)}.name{font-size:18px;font-weight:760;margin:4px 0}.desc{font-size:14px;color:var(--muted);line-height:1.55}.notice{margin-top:9px;padding:9px 10px;border-radius:10px;background:var(--warn-soft);font-size:12px;color:var(--warn);line-height:1.5}.detail{margin-top:9px;padding-top:9px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);line-height:1.6}
+.chips,.links{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.chip{padding:4px 8px;border-radius:8px;background:#eef2ef;color:var(--muted);font-size:12px}.btn{min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0 13px;border-radius:12px;font-size:13px;font-weight:730;color:#fff}.btn.amap{background:var(--brand)}.btn.xhs{background:#ff2442}.btn.dp{background:#f39a12}.btn.reserve{background:#2c6cb0}
+.day-link{display:block;color:inherit;margin-bottom:9px}.day-link .card{padding:14px}.day-link small{color:var(--muted)}
+.marker{width:31px;height:31px;border:3px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.24)}
+.amap-info-content{padding:2px 2px 3px;min-width:170px}.amap-info-content strong{font-size:15px}.amap-info-content p{margin:5px 0;color:#68716c;font-size:12px;line-height:1.45}.amap-info-content a{color:var(--brand);font-weight:700;font-size:13px}
+@media (min-width:760px){.map-shell{height:46vh}.tabs{top:46vh}.content{padding-left:20px;padding-right:20px}}
+</style>
+</head>
+<body>
+<div class="map-shell"><div id="map"></div><div id="map-status" role="status"></div></div>
+<nav id="tabs" class="tabs" aria-label="按天查看"></nav>
+<main id="content" class="content"></main>
+
+<script>
+// REPLACE: all coordinates must be AMap GCJ-02. Keep longitude in lng and latitude in lat.
+const TRIP = {
+  title: "行程标题",
+  subtitle: "日期 · 城市 · 手机端高德行程地图",
+  arrival: "抵达信息",
+  departure: "离开信息",
+  summary: "行程原则与总提醒",
+};
+
+const HOTEL = { name:"酒店名称", address:"酒店地址", lng:0, lat:0, amapPoiId:"" };
+
+const DAYS = [
+  { id:0, label:"总览", color:"#16794b", locations:[] },
+  // {
+  //   id:1, label:"D1", date:"2026-01-01", title:"主区域", color:"#1976d2",
+  //   routeSummary:"酒店 → 景点 → 午餐；预计步行/地铁时间",
+  //   routePath:[[116.39,39.90],[116.40,39.91]], // optional, GCJ-02 [lng,lat]
+  //   warnings:["预约/闭馆/天气/客流提醒"],
+  //   locations:[{
+  //     name:"地点", lng:116.397428, lat:39.90923, amapPoiId:"B...",
+  //     type:"spot", time:"09:30", desc:"安排理由", notice:"注意事项",
+  //     detail:"营业时间与证据摘要", budget:"¥100", pay:["支付宝","微信"],
+  //     xhs:"https://...", dianping:"https://...", reserve:"https://..."
+  //   }]
+  // }
+];
+
+const escapeHtml = value => String(value ?? "").replace(/[&<>'"]/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[ch]));
+const colors = {spot:"#1976d2",food:"#d84a3a",drink:"#7b4bb7",hotel:"#dd8a18",transport:"#59636e"};
+const emojis = {spot:"景",food:"餐",drink:"饮",hotel:"住",transport:"行"};
+let activeDay = 0;
+let overlays = [];
+let infoWindow;
+let markerIndex = new Map();
+let renderLocations = [];
+
+function showMapStatus(message){const el=document.getElementById("map-status");el.textContent=message;el.style.display="block"}
+
+if (!window.AMap) {
+  showMapStatus("高德地图加载失败，请检查网络、JS API Key、允许域名和安全代理。行程文字仍可查看。");
+}
+
+const map = window.AMap ? new AMap.Map("map", {
+  center: HOTEL.lng ? [HOTEL.lng,HOTEL.lat] : [116.397428,39.90923],
+  zoom:12, viewMode:"2D", mapStyle:"amap://styles/whitesmoke", resizeEnable:true
+}) : null;
+
+if (map) {
+  map.addControl(new AMap.Scale());
+  map.addControl(new AMap.ToolBar({position:{top:"12px",right:"12px"}}));
+  map.addControl(new AMap.Geolocation({position:{bottom:"18px",right:"12px"},enableHighAccuracy:true,timeout:10000,zoomToAccuracy:true}));
+  infoWindow = new AMap.InfoWindow({offset:new AMap.Pixel(0,-19),isCustom:false});
+}
+
+function amapUrl(loc){
+  const src="trip-map-builder";
+  if(loc.amapPoiId) return `https://uri.amap.com/marker?poiid=${encodeURIComponent(loc.amapPoiId)}&src=${src}&callnative=1`;
+  return `https://uri.amap.com/marker?position=${loc.lng},${loc.lat}&name=${encodeURIComponent(loc.name)}&src=${src}&coordinate=gaode&callnative=1`;
+}
+
+function markerContent(loc,color){return `<div class="marker" style="background:${color}">${emojis[loc.type]||"点"}</div>`}
+
+function markerKey(loc){return `${loc.name}|${loc.lng}|${loc.lat}`}
+function openLocationInfo(marker,loc,dayLabel){
+  const content=`<div class="amap-info-content"><strong>${escapeHtml(loc.name)}</strong><p>${escapeHtml(dayLabel||"")} ${escapeHtml(loc.time||"")}<br>${escapeHtml(loc.desc||"")}</p><a href="${amapUrl(loc)}" target="_blank" rel="noopener">在高德打开</a></div>`;
+  infoWindow.setContent(content); infoWindow.open(map,marker.getPosition());
+}
+
+function addLocationMarker(loc,color,dayLabel){
+  if(!map || !loc.lng || !loc.lat) return null;
+  const marker=new AMap.Marker({position:[loc.lng,loc.lat],content:markerContent(loc,color),offset:new AMap.Pixel(-15,-15),title:loc.name,zIndex:loc.type==="hotel"?130:110});
+  marker.on("click",()=>openLocationInfo(marker,loc,dayLabel));
+  map.add(marker); overlays.push(marker); markerIndex.set(markerKey(loc),{marker,loc,dayLabel}); return marker;
+}
+
+function clearMap(){if(map&&overlays.length)map.remove(overlays);overlays=[];markerIndex.clear();if(infoWindow)infoWindow.close()}
+
+function showDay(id){
+  if(!map)return; clearMap();
+  const selected=DAYS.find(day=>day.id===id);
+  const view=[];
+  if(HOTEL.lng){const hotel={...HOTEL,type:"hotel",time:"",desc:HOTEL.address};const m=addLocationMarker(hotel,colors.hotel,"酒店");if(m)view.push(m)}
+  const days=id===0?DAYS.slice(1):selected?[selected]:[];
+  for(const day of days){
+    for(const loc of day.locations||[]){const m=addLocationMarker(loc,id===0?day.color:(colors[loc.type]||day.color),day.label);if(m)view.push(m)}
+    if(id!==0){
+      const ordered=(day.locations||[]).filter(loc=>loc.time!=="—"&&loc.lng&&loc.lat).map(loc=>[loc.lng,loc.lat]);
+      const path=(day.routePath&&day.routePath.length>1)?day.routePath:ordered;
+      if(path.length>1){const verified=Boolean(day.routePath&&day.routePath.length>1);const line=new AMap.Polyline({path,strokeColor:day.color,strokeWeight:5,strokeOpacity:.72,strokeStyle:verified?"solid":"dashed",lineJoin:"round"});map.add(line);overlays.push(line);view.push(line)}
+    }
+  }
+  if(view.length)map.setFitView(view,false,[36,36,36,36],15);
+}
+
+function chips(loc){const values=[loc.budget,...(loc.pay||[])].filter(Boolean);return values.length?`<div class="chips">${values.map(v=>`<span class="chip">${escapeHtml(v)}</span>`).join("")}</div>`:""}
+function links(loc){let html=`<a class="btn amap" href="${amapUrl(loc)}" target="_blank" rel="noopener">高德导航</a>`;if(loc.xhs)html+=`<a class="btn xhs" href="${escapeHtml(loc.xhs)}" target="_blank" rel="noopener">小红书</a>`;if(loc.dianping)html+=`<a class="btn dp" href="${escapeHtml(loc.dianping)}" target="_blank" rel="noopener">大众点评</a>`;if(loc.reserve)html+=`<a class="btn reserve" href="${escapeHtml(loc.reserve)}" target="_blank" rel="noopener">预约</a>`;return `<div class="links">${html}</div>`}
+function card(loc){const index=renderLocations.push(loc)-1;return `<article class="item"><span class="dot ${escapeHtml(loc.type)}"></span><div class="card" onclick="focusLocation(${index})"><div class="time">${loc.time==="—"?"附近备选":escapeHtml(loc.time)}</div><div class="name">${escapeHtml(loc.name)}</div><div class="desc">${escapeHtml(loc.desc)}</div>${loc.notice?`<div class="notice">${escapeHtml(loc.notice)}</div>`:""}${chips(loc)}${loc.detail?`<div class="detail">${escapeHtml(loc.detail).replace(/\n/g,"<br>")}</div>`:""}${links(loc)}</div></article>`}
+function focusLocation(index){const loc=renderLocations[index];if(!map||!loc?.lng)return;map.setZoomAndCenter(16,[loc.lng,loc.lat]);const entry=markerIndex.get(markerKey(loc));if(entry)openLocationInfo(entry.marker,entry.loc,entry.dayLabel)}
+
+function overview(){return `<section class="hero"><h1>${escapeHtml(TRIP.title)}</h1><p>${escapeHtml(TRIP.subtitle)}</p></section><div class="grid"><div class="info"><span class="eyebrow">酒店</span><strong>${escapeHtml(HOTEL.name)}</strong></div><div class="info"><span class="eyebrow">抵达</span><strong>${escapeHtml(TRIP.arrival)}</strong></div><div class="info"><span class="eyebrow">离开</span><strong>${escapeHtml(TRIP.departure)}</strong></div><div class="info"><span class="eyebrow">原则</span><strong>${escapeHtml(TRIP.summary)}</strong></div></div><div class="section">每日安排</div>${DAYS.slice(1).map(day=>`<a class="day-link" href="#" onclick="go(${day.id});return false"><div class="card"><div class="name">${escapeHtml(day.label)} · ${escapeHtml(day.title)}</div><small>${escapeHtml(day.date)}</small></div></a>`).join("")}`}
+
+function dayContent(day){renderLocations=[];const main=(day.locations||[]).filter(loc=>loc.time!=="—");const alt=(day.locations||[]).filter(loc=>loc.time==="—");return `<section class="day-head"><h2>${escapeHtml(day.title)}</h2><p>${escapeHtml(day.date)}</p></section>${day.routeSummary?`<div class="route"><strong>路线：</strong>${escapeHtml(day.routeSummary)}<br><small>${day.routePath?"高德路线数据":"点位顺序示意线，实际路线以高德导航为准"}</small></div>`:""}${(day.warnings||[]).map(w=>`<div class="warning">${escapeHtml(w)}</div>`).join("")}<div class="section">行程</div><div class="timeline">${main.map(card).join("")}</div>${alt.length?`<div class="section">附近备选</div><div class="timeline">${alt.map(card).join("")}</div>`:""}`}
+
+const tabs=document.getElementById("tabs"),content=document.getElementById("content");
+DAYS.forEach(day=>{const button=document.createElement("button");button.className=`tab${day.id===0?" active":""}`;button.dataset.day=day.id;button.textContent=day.label;tabs.appendChild(button)});
+function go(id){activeDay=id;tabs.querySelectorAll(".tab").forEach(tab=>tab.classList.toggle("active",Number(tab.dataset.day)===id));const day=DAYS.find(item=>item.id===id);if(id===0)renderLocations=[];content.innerHTML=id===0?overview():dayContent(day);showDay(id);tabs.querySelector(`[data-day="${id}"]`)?.scrollIntoView({behavior:"smooth",inline:"center",block:"nearest"});window.scrollTo({top:document.querySelector(".map-shell").offsetTop,behavior:"smooth"})}
+tabs.addEventListener("click",event=>{const tab=event.target.closest(".tab");if(tab)go(Number(tab.dataset.day))});
+go(0);
+</script>
+</body>
+</html>

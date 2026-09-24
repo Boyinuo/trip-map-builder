@@ -1,16 +1,17 @@
 # trip-map-builder - 旅行地图技能包
-Markdown + HTML + OpenCLI references
+
+必填信息与接口双门禁 → 调研规划 → 文字确认 → 高德手机网页确认 → GitHub/Vercel → 高德 App 专属地图。
 
 <directory>
-assets/ - 单文件地图模板 (1文件: template.html)
-references/ - 调研与规划方法论 (3文件: trip-planning.md, dianping-research.md, xhs-research.md)
+assets/site/ - 高德 JS API 2.0 手机网页、Vercel 安全代理与部署配置
+references/ - 输入门禁、环境配置、调研、规划、网页部署和专属地图方法
 </directory>
 
 <config>
-README.md - 对外说明技能定位、安装、流程和目录结构
-SKILL.md - Agent 技能入口，定义触发条件、共享记忆和三阶段流程
+README.md - 对外说明技能定位、强制流程、密钥边界和目录结构
+SKILL.md - Agent 技能入口，定义全部门禁与最终交付
 </config>
 
-法则: 行程是参考坐标，不是执行脚本。记忆只存下次仍有用的偏好。餐厅先看当天区域，再看大众点评和小红书。
+法则：未收齐五类输入不继续；接口未实测通过不调研；文字和网页未经确认不推进；地图与导航只用高德；不生成 PDF；秘密不进前端、Git 或聊天。
 
-[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+[PROTOCOL]: 变更时更新此头部，然后检查 references/CLAUDE.md

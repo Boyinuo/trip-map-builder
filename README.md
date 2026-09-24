@@ -1,122 +1,79 @@
 # Trip Map Builder
 
-从零散信息到可部署的交互式行程地图页面。
+面向中国城市旅行的完整技能：先收齐硬信息和实测接口，再调研、确认文字方案、制作手机端高德网页、部署，并生成高德 App 专属旅游地图。
 
-三阶段流水线：**规划行程 → 大众点评/小红书调研 → 生成地图页面**。
+## 强制工作流
 
-定位：生成出发前的参考坐标，不是假装旅行会逐小时照做的执行脚本。
+1. **必填信息门禁**：旅游城市、酒店名称/地址、抵达时间和枢纽、离开时间和枢纽、景点偏好与美食偏好必须齐全。
+2. **接口门禁**：实测 OpenCLI、Browser Bridge、小红书、大众点评、高德 Web 端（JS API）Key、安全密钥、Web 服务 Key 和高德 MCP `personal_map`。
+3. **调研与安排**：按区域和真实交通组织景点，结合大众点评与小红书选顺路餐厅。
+4. **文字版确认**：先交完整文字行程，用户修改并明确确认后才写网页。
+5. **手机网页确认**：只用高德 JS API 2.0 渲染地图和路线，在手机尺寸预览；用户确认后才部署。
+6. **GitHub + Vercel**：推送代码、配置服务端安全密钥、部署生产并在手机端复测。
+7. **高德专属地图**：调用官方高德 MCP `personal_map`，返回可在高德 App 打开的专属旅行地图链接。
 
-## 共享记忆
+技能不会生成 PDF，也不会用 Leaflet、CARTO、Google Maps、Apple Maps、百度地图或其他地图服务替代高德。
 
-技能会优先读取 `~/.trip-map-builder/MEMORY.md`，复用长期有效的旅行偏好：节奏、餐饮、预算、支付、导航方式、历史行程输出和未解决事项。它不保存原始截图、证件、订单号或完整聊天记录。
+## 规划原则
 
-## Demo
+- 一天一个主区域，抵达日轻量，离开日靠近交通枢纽。
+- 行程越顺越好，不把用户清单全部硬塞进去。
+- 每天最多一个重预约锚点；天气敏感项目配附近室内备选。
+- 餐厅先看当天区域，再用大众点评判断口味、排队、价格和踩雷信号，用小红书补近期体验、氛围和软提醒。
+- 文字方案与网页各有一次不可跳过的确认门禁。
+- 行程是出发前的参考坐标，旅途中可根据天气、位置、体力和饥饿程度调整。
 
-**[tokyo-trip-pi.vercel.app](https://tokyo-trip-pi.vercel.app)** — 东京 4 泊 5 日行程地图
+## 地图与密钥
 
-源码：[hiyeshu/tokyo-trip](https://github.com/hiyeshu/tokyo-trip)
+网页模板位于 [`assets/site/`](assets/site/)，包含：
 
-## 这个技能做什么
+- `index.html`：高德 JS API 2.0 手机端行程页；
+- `api/amap-proxy.js`：Vercel 服务端安全代理；
+- `vercel.json`：`/_AMapService` 路由；
+- `.gitignore`：排除本地环境和部署状态文件。
 
-给 AI agent 一套完整的旅行规划工作流：
+需要两类高德 Key：
 
-1. 用户丢过来机票截图、酒店截图、想去的地方
-2. Agent 提取硬约束（日期、航班、酒店位置），按区域分组，主动删掉塞不下的点，并标记天气敏感点
-3. 餐厅按当天区域给候选，用大众点评 + 小红书判断口味、排队、踩雷、氛围和近期体验
-4. 生成单文件 HTML 页面：Leaflet 地图 + 时间轴卡片 + Google Maps 导航 + 小红书链接 + 支付方式标签
-5. 更新共享记忆，只保存下次旅行仍然有用的偏好和输出索引
-6. 推到 GitHub，Vercel 自动部署，手机打开直接用
+- Web 端（JS API）Key + `securityJsCode`；
+- Web 服务 API Key（POI、地理编码、路线和高德 MCP）。
+
+JS Key 可在页面中加载，但应限制允许域名；`securityJsCode` 与 Web 服务 Key 不能进入前端或 Git。详见 [`references/environment-setup.md`](references/environment-setup.md) 和 [`references/amap-build-deploy.md`](references/amap-build-deploy.md)。
 
 ## 安装
-
-一行命令安装（[skills.sh](https://skills.sh) 生态）：
 
 ```bash
 npx skills add hiyeshu/trip-map-builder
 ```
 
-或者手动 clone 到 skills 目录：
+或把仓库 clone 到支持的 skills 目录。
 
-```bash
-# Cursor
-git clone https://github.com/hiyeshu/trip-map-builder.git ~/.cursor/skills/trip-map-builder
+## 触发示例
 
-# Claude Code
-git clone https://github.com/hiyeshu/trip-map-builder.git ~/.claude/skills/trip-map-builder
-```
-
-## 触发词
-
-说这些话会激活技能：
-
-- "做个行程" / "行程规划" / "行程地图"
-- "plan my trip" / "trip map" / "build itinerary"
-- "帮我查一下小红书上这家店怎么样"
-
-## 工作流
-
-### Phase 1：规划行程
-
-从用户给的碎片信息里抽出硬约束，按区域分组，主动删高风险点。
-
-核心原则：
-- 一天一个主区域
-- 不是越满越好，是越顺越好
-- 行程是参考坐标，真实执行可以被天气、当前位置、体力和饥饿程度覆盖
-- 餐厅是当天区域内的顺路候选，不为名店反向扭曲路线
-- 替用户删东西，说清楚删了什么、为什么删
-
-详见 [`references/trip-planning.md`](references/trip-planning.md)
-
-### Phase 2：大众点评 + 小红书调研
-
-餐厅优先看大众点评和小红书：大众点评判断口味、排队、踩雷、值不值得；小红书补氛围、近期体验、拍照和软性提醒。
-
-小红书可用 OpenCLI 的 CDPBridge 连接 Chrome，直接访问搜索结果页路由，拦截 `search/notes` API，提取前排笔记。
-
-关键经验：**不要模拟输入框**，直接进 `search_result?keyword=` 路由更稳定。
-
-两段式流程：先粗筛搜索结果（10-20 条），再精读最相关的 2-3 条详情页。
-
-详见 [`references/dianping-research.md`](references/dianping-research.md) 和 [`references/xhs-research.md`](references/xhs-research.md)
-
-### Phase 3：生成地图页面
-
-基于 [`assets/template.html`](assets/template.html) 模板填入数据，生成单文件 HTML：
-
-- Leaflet.js 交互地图（无需 API key）
-- 按天切换的时间轴卡片
-- 每个地点：
-  - 📍 **导航**：Action Sheet 三选——Apple Maps / Google Maps / 🧭 **高德地图 App**（直接 scheme 唤起，不打开网页）
-  - 📕 **小红书 App**：UA 检测，正常浏览器走 `xhsdiscover://` scheme，微信/抖音等 WebView 内自动降级到 m 站
-  - 🍜 **大众点评 App**：`food` / `drink` 类型自动启用，可用 `dianping: false` 关闭，或 `dianpingKeyword` 自定义搜索词
-  - 📅 预约按钮（可选）
-- 支付方式标签（信用卡 / 支付宝 / 交通卡 / 现金）
-- 默认 Apple 设计系统，可通过 [awesome-design-md](https://github.com/VoltAgent/awesome-design-md) 切换风格
-
-## 依赖
-
-| 工具 | 用途 | 安装 |
-|------|------|------|
-| [OpenCLI](https://github.com/jackwener/OpenCLI) | 大众点评 adapter + 小红书调研 | `npm install -g @jackwener/opencli` |
-| Chrome / Chromium | 浏览器 + 远程调试 | — |
-| [Leaflet.js](https://leafletjs.com) | 地图渲染 | CDN 引入，无需安装 |
-| [gh CLI](https://cli.github.com) | GitHub 仓库创建（可选） | `brew install gh` |
+- “帮我做北京 4 天游玩计划并生成手机行程地图”
+- “查小红书和大众点评，排一个成都美食与景点路线”
+- “做个行程网页，最后部署并导入高德专属地图”
+- “plan my trip” / “trip map” / “行程规划”
 
 ## 目录结构
 
-```
+```text
 trip-map-builder/
-├── CLAUDE.md                 # 项目地图，记录目录职责
-├── SKILL.md                  # 技能入口，三阶段流程
-├── README.md                 # 本文件
+├── SKILL.md
+├── README.md
+├── CLAUDE.md
 ├── assets/
-│   └── template.html         # 可复用 HTML 地图模板
+│   └── site/
+│       ├── index.html
+│       ├── vercel.json
+│       ├── .gitignore
+│       └── api/amap-proxy.js
 └── references/
-    ├── CLAUDE.md             # references 局部地图
-    ├── trip-planning.md      # 行程规划方法论
-    ├── dianping-research.md  # 大众点评调研 + OpenCLI adapter
-    └── xhs-research.md       # 小红书调研 + OpenCLI 安装
+    ├── trip-planning.md
+    ├── environment-setup.md
+    ├── dianping-research.md
+    ├── xhs-research.md
+    ├── amap-build-deploy.md
+    └── CLAUDE.md
 ```
 
 ## 许可
